@@ -7,5 +7,7 @@ namespace ShortenUrl.Models
 		public string ShortenUrl { get; set; } = string.Empty;
 		public string Token { get; set; } = string.Empty;
 		public DateTimeOffset ExpiryDate { get; set; } = DateTimeOffset.Now;
-	}
+
+        public required User User { get; set; }
+    }
 }

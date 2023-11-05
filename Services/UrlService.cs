@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using ShortenUrl.Models;
 
 namespace ShortenUrl.Services
@@ -36,6 +37,8 @@ namespace ShortenUrl.Services
 
 		public Url SaveUrl(UrlDto urlDto, string baseUrl)
 		{
+			var user = _context.Users.Find(urlDto.UserId);
+
 			var validSeconds = urlDto.ValidMinutes * 60;
 			var token = GenerateShortenUrl();
 			var url = new Url
@@ -43,7 +46,8 @@ namespace ShortenUrl.Services
 				OriginalUrl = urlDto.LongUrl,
 				ShortenUrl = $"{baseUrl}/{token}",
 				Token = token,
-				ExpiryDate = DateTimeOffset.Now.AddSeconds(validSeconds)
+				ExpiryDate = DateTimeOffset.Now.AddSeconds(validSeconds),
+				User = user!
 			};
 			_context.Urls.Add(url);
 			_context.SaveChanges();
@@ -52,12 +56,16 @@ namespace ShortenUrl.Services
 
 		public Url? GetUrl(string token)
 		{
-			return _context.Urls.Where(u => u.Token == token).FirstOrDefault();
-		}
+			var url = _context.Urls
+				.Where(url => url.Token == token)
+				.SingleOrDefault();
+			var now = DateTime.Now;
+			return url?.ExpiryDate > now ? url : null;
+        }
 
-		public List<Url> GetUrls()
+		public List<Url> GetUrls(int userId)
 		{
-			return _context.Urls.ToList();
+			return _context.Urls.Where(url => url.User.Id == userId).ToList();
 		}
 	}
 }
