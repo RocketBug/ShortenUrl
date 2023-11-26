@@ -1,0 +1,142 @@
+<div class="holy-grail-flexbox">
+    <header class="header">
+        <mat-toolbar>
+            <span>Manage Urls</span>
+            <span style="flex: 1 1 auto"></span>
+            <button
+                mat-icon-button
+                class="logout-icon"
+                aria-label="logout icon"
+                (click)="logoutUser()">
+                <mat-icon>logout</mat-icon>
+            </button>
+        </mat-toolbar>
+    </header>
+    <main class="main-content">
+        <div
+            style="
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+            ">
+            <div style="display: flex">
+                <form [formGroup]="createShortUrlForm">
+                    <mat-card>
+                        <mat-card-header>
+                            <mat-card-title>
+                                <h2 style="color: white">
+                                    Create a new shortened URL
+                                </h2>
+                            </mat-card-title>
+                            <mat-card-subtitle>
+                                <form [formGroup]="createShortUrlForm">
+                                    <mat-form-field [appearance]="'outline'">
+                                        <mat-label>original Url</mat-label>
+                                        <input
+                                            matInput
+                                            placeholder="Enter Link To Shorten"
+                                            formControlName="originalUrl" />
+                                        <mat-icon
+                                            matSuffix
+                                            style="color: whitesmoke"
+                                            aria-hidden="false"
+                                            aria-label="link"
+                                            fontIcon="link"></mat-icon>
+                                    </mat-form-field>
+                                    <mat-form-field [appearance]="'outline'">
+                                        <mat-label>Valid minutes</mat-label>
+                                        <input
+                                            matInput
+                                            type="number"
+                                            placeholder="Enter valid minutes"
+                                            formControlName="validMinutes" />
+                                        <mat-icon
+                                            matSuffix
+                                            style="color: whitesmoke"
+                                            aria-hidden="false"
+                                            aria-label="timer_off"
+                                            fontIcon="timer_off"></mat-icon>
+                                    </mat-form-field>
+                                </form>
+                            </mat-card-subtitle>
+                        </mat-card-header>
+                        <mat-card-actions>
+                            <button
+                                mat-flat-button
+                                color="primary"
+                                (click)="submitForm()">
+                                Create
+                            </button>
+                            <button
+                                mat-flat-button
+                                color="accent"
+                                style="margin-left: 20px"
+                                (click)="clearForm()">
+                                Clear
+                            </button>
+                        </mat-card-actions>
+                    </mat-card>
+                </form>
+            </div>
+            <br />
+            <div>
+                <table
+                    mat-table
+                    [dataSource]="dataSource"
+                    class="mat-elevation-z8">
+                    <ng-container matColumnDef="Original Url">
+                        <th mat-header-cell *matHeaderCellDef>Original Url</th>
+                        <td mat-cell *matCellDef="let element">
+                            {{ element.originalUrl }}
+                        </td>
+                    </ng-container>
+
+                    <ng-container matColumnDef="Short Url">
+                        <th mat-header-cell *matHeaderCellDef>Short Url</th>
+                        <td mat-cell *matCellDef="let element">
+                            <div style="display: flex; align-items: center">
+                                {{ element.shortenUrl }}
+                                <button
+                                    [cdkCopyToClipboard]="element.shortenUrl"
+                                    mat-icon-button
+                                    color="accent"
+                                    [disabled]="element.isExpired"
+                                    (click)="showCopiedLinkSnackBar()">
+                                    <mat-icon>content_copy</mat-icon>
+                                </button>
+                            </div>
+                        </td>
+                    </ng-container>
+
+                    <ng-container matColumnDef="Expiry">
+                        <th mat-header-cell *matHeaderCellDef>Expiry</th>
+                        <td mat-cell *matCellDef="let element">
+                            {{
+                                element.isExpired
+                                    ? 'Expired'
+                                    : (element.expiryDate | date : 'short')
+                            }}
+                        </td>
+                    </ng-container>
+
+                    <ng-container matColumnDef="Actions">
+                        <th mat-header-cell *matHeaderCellDef>Actions</th>
+                        <td mat-cell *matCellDef="let element">
+                            <button
+                                mat-flat-button
+                                color="primary"
+                                (click)="onDeleteItem(element)">
+                                Delete
+                            </button>
+                        </td>
+                    </ng-container>
+                    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+                    <tr
+                        mat-row
+                        *matRowDef="let row; columns: displayedColumns"></tr>
+                </table>
+            </div>
+        </div>
+    </main>
+    <footer class="footer">Made With ❤️ By Abraham Wilson</footer>
+</div>

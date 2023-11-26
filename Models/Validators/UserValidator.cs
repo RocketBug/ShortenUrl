@@ -1,8 +1,9 @@
 ﻿using FluentValidation;
+using ShortenUrl.Models.DTO;
 
 namespace ShortenUrl.Models.Validators
 {
-    public class UserValidator : AbstractValidator<UserDto>
+    public class UserValidator : AbstractValidator<UserAuthDto>
     {
         public UserValidator()
         {

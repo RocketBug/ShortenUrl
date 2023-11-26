@@ -1,0 +1,55 @@
+<div class="container">
+    <div style="display: flex; flex-direction: column">
+        <h1 style="color: whitesmoke">Create a short shareable link</h1>
+        <mat-card style="padding: 20px">
+            <h2 style="color: whitesmoke">Welcome To ShortUrl</h2>
+            <form [formGroup]="authForm">
+                <div style="display: flex; flex-direction: column">
+                    <mat-form-field appearance="outline">
+                        <mat-label>Email</mat-label>
+                        <input
+                            matInput
+                            placeholder="Enter Email"
+                            formControlName="email" />
+                        <mat-icon
+                            matSuffix
+                            style="color: whitesmoke"
+                            aria-hidden="false"
+                            aria-label="email"
+                            fontIcon="email"></mat-icon>
+                    </mat-form-field>
+                    <mat-form-field appearance="outline">
+                        <mat-label>Password</mat-label>
+                        <input
+                            matInput
+                            type="password"
+                            placeholder="Enter Password"
+                            formControlName="password" />
+                        <mat-icon
+                            matSuffix
+                            style="color: whitesmoke"
+                            aria-hidden="false"
+                            aria-label="password"
+                            fontIcon="password"></mat-icon>
+                    </mat-form-field>
+                </div>
+                <div style="display: flex; justify-content: space-between">
+                    <button
+                        mat-flat-button
+                        color="primary"
+                        style="font-size: 14px"
+                        (click)="submitForm('register')">
+                        Register
+                    </button>
+                    <button
+                        mat-flat-button
+                        color="accent"
+                        style="font-size: 14px"
+                        (click)="submitForm('login')">
+                        Login
+                    </button>
+                </div>
+            </form>
+        </mat-card>
+    </div>
+</div>

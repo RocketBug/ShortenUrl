@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ShortenUrl.Models;
 
@@ -10,9 +11,11 @@ using ShortenUrl.Models;
 namespace ShortenUrl.Migrations
 {
     [DbContext(typeof(ApiDbContext))]
-    partial class ApiDbContextModelSnapshot : ModelSnapshot
+    [Migration("20231111162206_ArchiveUserAndUrl")]
+    partial class ArchiveUserAndUrl
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "7.0.13");
@@ -25,12 +28,6 @@ namespace ShortenUrl.Migrations
 
                     b.Property<bool>("Archived")
                         .HasColumnType("INTEGER");
-
-                    b.Property<DateTimeOffset>("DateCreated")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTimeOffset?>("DateModified")
-                        .HasColumnType("TEXT");
 
                     b.Property<DateTimeOffset>("ExpiryDate")
                         .HasColumnType("TEXT");
@@ -66,26 +63,7 @@ namespace ShortenUrl.Migrations
                     b.Property<bool>("Archived")
                         .HasColumnType("INTEGER");
 
-                    b.Property<DateTimeOffset?>("DateCreated")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTimeOffset?>("DateModified")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTimeOffset>("DateRefreshTokenCreated")
-                        .HasColumnType("TEXT");
-
-                    b.Property<DateTimeOffset>("DateRefreshTokenExpires")
-                        .HasColumnType("TEXT");
-
-                    b.Property<bool>("IsRefreshTokenRevoked")
-                        .HasColumnType("INTEGER");
-
                     b.Property<string>("PasswordHash")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("RefreshToken")
                         .IsRequired()
                         .HasColumnType("TEXT");
 

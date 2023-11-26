@@ -1,0 +1,19 @@
+<div
+    style="
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+    ">
+    <div *ngIf="!isLinkNotFound; else elseBlock">
+        <mat-progress-spinner
+            class="example-margin"
+            [color]="color"
+            [mode]="mode"></mat-progress-spinner>
+        <h2 style="color: whitesmoke">Redirecting to Original URL</h2>
+    </div>
+    <ng-template #elseBlock>
+        <h2 style="color: whitesmoke">❌ Looks like the links has expired</h2>
+    </ng-template>
+</div>

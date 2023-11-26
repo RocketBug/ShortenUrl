@@ -1,5 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using ShortenUrl.Models;
+using ShortenUrl.Models.DTO;
+using ShortenUrl.Models.Validators;
+using System.Collections.Immutable;
 
 namespace ShortenUrl.Services
 {
@@ -10,10 +13,12 @@ namespace ShortenUrl.Services
 		private const int ShortUrlLength = 6;
 		private static readonly Random random = new();
 		private readonly ApiDbContext _context;
+        private readonly IConfiguration _configuration;
 
-		public UrlService(ApiDbContext context)
+        public UrlService(ApiDbContext context, IConfiguration configuration)
 		{
 			_context = context;
+			_configuration = configuration;
 		}
 		private static string GetShorterUrl()
 		{
@@ -37,35 +42,70 @@ namespace ShortenUrl.Services
 
 		public Url SaveUrl(UrlDto urlDto, string baseUrl)
 		{
-			var user = _context.Users.Find(urlDto.UserId);
+			var urlValidator = new UrlValidator();
+			var validationResult = urlValidator.Validate(urlDto);
 
+			if (!validationResult.IsValid)
+			{
+				var errorMessage = validationResult.Errors.Select(e => e.ErrorMessage);
+                throw new InvalidDataException(string.Join(", ", errorMessage));
+			}
+
+			var user = _context.Users.SingleOrDefault(u => u.UserId == urlDto.UserId);
 			var validSeconds = urlDto.ValidMinutes * 60;
 			var token = GenerateShortenUrl();
-			var url = new Url
+			var frontEndDomain = _configuration.GetSection("FrontEndDomain").Value;
+            var url = new Url
 			{
 				OriginalUrl = urlDto.LongUrl,
-				ShortenUrl = $"{baseUrl}/{token}",
+				ShortenUrl = $"{frontEndDomain}/{token}",
 				Token = token,
 				ExpiryDate = DateTimeOffset.Now.AddSeconds(validSeconds),
-				User = user!
+				User = user!,
+				DateCreated = DateTimeOffset.Now,
 			};
 			_context.Urls.Add(url);
 			_context.SaveChanges();
 			return url;
+
 		}
 
 		public Url? GetUrl(string token)
 		{
 			var url = _context.Urls
-				.Where(url => url.Token == token)
+				.Where(url => url.Token == token && !url.Archived)
 				.SingleOrDefault();
 			var now = DateTime.Now;
 			return url?.ExpiryDate > now ? url : null;
-        }
+		}
 
-		public List<Url> GetUrls(int userId)
+		public List<UrlResponseDto> GetUrls(string userId)
 		{
-			return _context.Urls.Where(url => url.User.Id == userId).ToList();
+			return _context.Urls
+				.Where(url => url.User.UserId == Guid.Parse(userId) && !url.Archived)
+				.ToList()
+				.Select(u => new UrlResponseDto 
+				{
+					Id = u.Id,
+					ExpiryDate = u.ExpiryDate,
+					OriginalUrl = u.OriginalUrl,
+					ShortenUrl = u.ShortenUrl,
+					Token = u.Token,
+					IsExpired = u.IsExpired
+				})
+				.ToList();
+		}
+
+		public void ArchiveUrl(string urlToken)
+		{
+			var url = _context.Urls.Single(u => u.Token == urlToken);
+			if (url is null)
+			{
+				throw new Exception("Url not found");
+			}
+
+			url.Archived = true;
+			_context.SaveChanges();
 		}
 	}
 }
