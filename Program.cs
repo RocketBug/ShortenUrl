@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.AspNetCore.Http.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -9,11 +8,14 @@ using ShortenUrl.Services;
 using Swashbuckle.AspNetCore.Filters;
 using System.Text;
 using System.Text.Json.Serialization;
+using JsonOptions = Microsoft.AspNetCore.Http.Json.JsonOptions;
 
 var allowFrontEndOrigin = "FrontEnd";
 var builder = WebApplication.CreateBuilder(args);
-builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddTransient<UserService>();
+builder.Services.AddTransient<UrlService>();
 
+builder.Services.AddEndpointsApiExplorer();
 builder.Services.Configure<JsonOptions>(options =>
 {
 	options.SerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
@@ -21,8 +23,8 @@ builder.Services.Configure<JsonOptions>(options =>
 
 builder.Services.AddCors(options =>
 {
-	options.AddPolicy(name: allowFrontEndOrigin, 
-		policy => 
+	options.AddPolicy(name: allowFrontEndOrigin,
+		policy =>
 		{
 			policy.WithOrigins("http://localhost:4200")
 			.AllowCredentials()
@@ -58,7 +60,9 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJw
 		ValidateIssuerSigningKey = true,
 	};
 });
+
 builder.Services.AddAuthorization();
+
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<ApiDbContext>(options =>
@@ -78,23 +82,20 @@ app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
 
-app.MapPost("/users/register", (HttpContext httpContext, ApiDbContext apiDbContext, IConfiguration configuration, UserAuthDto userDto) =>
+app.MapPost("/users/register", (HttpContext httpContext, UserService userService, UserAuthDto userDto) =>
 {
 	try
 	{
-		var userService = new UserService(apiDbContext, configuration);
 		var user = userService.CreateUser(userDto);
-		
 		var refreshToken = user.RefreshToken;
 		setTokenCookie(httpContext, refreshToken);
-
 		var userResponse = new UserDto
 		{
 			Id = user.UserId,
 			Token = user.Token,
 			UserName = user.UserName
 		};
-        return Results.Ok(userResponse);
+		return Results.Ok(userResponse);
 	}
 	catch (InvalidDataException e)
 	{
@@ -102,85 +103,69 @@ app.MapPost("/users/register", (HttpContext httpContext, ApiDbContext apiDbConte
 	}
 }).AllowAnonymous();
 
-app.MapPost("/users/authenticate", (HttpContext httpContext, ApiDbContext apiDbContext, IConfiguration configuration, UserAuthDto userDto) =>
+app.MapPost("/users/authenticate", (HttpContext httpContext, UserService userService, UserAuthDto userDto) =>
 {
 	try
 	{
-        var userService = new UserService(apiDbContext, configuration);
-        var user = userService.LoginUser(userDto);
-
-        var refreshToken = user.RefreshToken;
-        setTokenCookie(httpContext, refreshToken);
-
-        var userResponse = new UserDto
-        {
-            Id = user.UserId,
-            Token = user.Token,
-            UserName = user.UserName
-        };
-        return Results.Ok(userResponse);
-    }
-    catch (Exception e)
+		var user = userService.LoginUser(userDto);
+		var refreshToken = user.RefreshToken;
+		setTokenCookie(httpContext, refreshToken);
+		var userResponse = new UserDto
+		{
+			Id = user.UserId,
+			Token = user.Token,
+			UserName = user.UserName
+		};
+		return Results.Ok(userResponse);
+	}
+	catch (Exception e)
 	{
 		return Results.BadRequest(e.Message);
 	}
 }).AllowAnonymous();
 
-app.MapPost("/users/refresh-token", (HttpContext httpContext, ApiDbContext apiDbContext, IConfiguration configuration) =>
+app.MapPost("/users/refresh-token", (HttpContext httpContext, UserService userService) =>
 {
 	try
 	{
-        var userService = new UserService(apiDbContext, configuration);
-        var refreshToken = httpContext.Request.Cookies["refreshToken"];
-
-        var user = userService.RefreshToken(refreshToken);
-
-        setTokenCookie(httpContext, user.RefreshToken);
-        var userResponse = new UserDto
-        {
-            Id = user.UserId,
-            Token = user.Token,
-            UserName = user.UserName
-        };
-        return Results.Ok(userResponse);
-    }
-    catch (Exception e)
+		var refreshToken = httpContext.Request.Cookies["refreshToken"];
+		var user = userService.RefreshToken(refreshToken);
+		setTokenCookie(httpContext, user.RefreshToken);
+		var userResponse = new UserDto
+		{
+			Id = user.UserId,
+			Token = user.Token,
+			UserName = user.UserName
+		};
+		return Results.Ok(userResponse);
+	}
+	catch (Exception e)
 	{
-        return Results.BadRequest(e.Message);
-    }
+		return Results.BadRequest(e.Message);
+	}
 }).AllowAnonymous();
 
-app.MapPost("/url/shorten", (HttpContext httpContext, ApiDbContext apiDbContext, UrlDto urlDto, IConfiguration configuration) =>
+app.MapPost("/url/shorten", (HttpContext httpContext, UrlService urlService, UrlDto urlDto) =>
 {
 	try
 	{
-        decimal hours = urlDto.ValidMinutes / 60;
-        hours = decimal.Round(hours, 2);
-        if (hours > 1)
-        {
-            return Results.BadRequest("Can't create a URL valid for more than an hour.");
-        }
-
-        var urlService = new UrlService(apiDbContext, configuration);
-        var url = urlService.SaveUrl(urlDto, httpContext.Request.Host.ToString());
-        return Results.Ok(url);
-    }
+		var url = urlService.SaveUrl(urlDto, httpContext.Request.Host.ToString());
+		return Results.Ok(url);
+	}
 	catch (Exception e)
 	{
 		return Results.BadRequest(e.Message);
 	}
 }).RequireAuthorization();
 
-app.MapGet("/url/{userId}/all-urls", (ApiDbContext apiDbContext, string userId, IConfiguration configuration) =>
+app.MapGet("/url/{userId}/all-urls", (UrlService urlService, string userId) =>
 {
-	var urlService = new UrlService(apiDbContext, configuration);
 	var urls = urlService.GetUrls(userId);
 	return urls;
 }).RequireAuthorization();
 
-app.MapGet("/url/{shortUrl}/redirect", (HttpContext httpContext, ApiDbContext apiDbContext, string shortUrl, IConfiguration configuration) =>
+app.MapGet("/url/{shortUrl}/redirect", (UrlService urlService, string shortUrl) =>
 {
-	var urlService = new UrlService(apiDbContext, configuration);
 	var url = urlService.GetUrl(shortUrl);
 	if (url is not null)
 	{
@@ -189,14 +174,13 @@ app.MapGet("/url/{shortUrl}/redirect", (HttpContext httpContext, ApiDbContext ap
 	return Results.NotFound();
 }).RequireAuthorization();
 
-app.MapDelete("/url/{shortUrl}/archive", (HttpContext httpContext, ApiDbContext apiDbContext, string shortUrl, IConfiguration configuration) => 
+app.MapDelete("/url/{shortUrl}/archive", (UrlService urlService, string shortUrl) =>
 {
 	try
 	{
-        var urlService = new UrlService(apiDbContext, configuration);
-        urlService.ArchiveUrl(shortUrl);
+		urlService.ArchiveUrl(shortUrl);
 		return Results.Ok();
-    }
+	}
 	catch (Exception e)
 	{
 		return Results.BadRequest(e.Message);
@@ -205,14 +189,13 @@ app.MapDelete("/url/{shortUrl}/archive", (HttpContext httpContext, ApiDbContext 
 
 static void setTokenCookie(HttpContext httpContext, string refreshToken)
 {
-    var cookieOptions = new CookieOptions
-    {
-        HttpOnly = true,
+	var cookieOptions = new CookieOptions
+	{
+		HttpOnly = true,
 		Secure = true,
-        Expires = DateTime.Now.AddDays(7)
-    };
-
-    httpContext.Response.Cookies.Append("refreshToken", refreshToken, cookieOptions);
+		Expires = DateTime.Now.AddDays(7)
+	};
+	httpContext.Response.Cookies.Append("refreshToken", refreshToken, cookieOptions);
 }
 
 app.Run();

@@ -2,3 +2,5 @@ bin/Debug
 obj/
 .vs/
 visual Studio 2022/
+database/
+appsettings.Production.json

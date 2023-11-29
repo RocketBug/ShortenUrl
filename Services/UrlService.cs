@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Migrations.Operations;
 using ShortenUrl.Models;
 using ShortenUrl.Models.DTO;
 using ShortenUrl.Models.Validators;
@@ -42,7 +43,14 @@ namespace ShortenUrl.Services
 
 		public Url SaveUrl(UrlDto urlDto, string baseUrl)
 		{
-			var urlValidator = new UrlValidator();
+            decimal hours = urlDto.ValidMinutes / 60;
+            hours = decimal.Round(hours, 2);
+            if (hours > 1)
+            {
+                throw new Exception("Can't create a URL valid for more than an hour.");
+            }
+
+            var urlValidator = new UrlValidator();
 			var validationResult = urlValidator.Validate(urlDto);
 
 			if (!validationResult.IsValid)
@@ -67,7 +75,6 @@ namespace ShortenUrl.Services
 			_context.Urls.Add(url);
 			_context.SaveChanges();
 			return url;
-
 		}
 
 		public Url? GetUrl(string token)
